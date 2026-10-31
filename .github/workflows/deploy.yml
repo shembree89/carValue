@@ -1,0 +1,44 @@
+name: Test and deploy carValue to GitHub Pages
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: carvalue-pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+      - name: Setup Node for tests
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run math regression tests
+        run: node --test engine.test.mjs
+      - name: Create static site directory
+        run: |
+          mkdir -p public
+          cp index.html styles.css app.js engine.mjs public/
+          touch public/.nojekyll
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+      - name: Upload site artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: public
+      - name: Deploy Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
